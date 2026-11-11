@@ -1,0 +1,47 @@
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: SHA ou tag da imagem já publicada
+        required: true
+        type: string
+      simular_falha:
+        description: Sobe o candidato com healthcheck ruim e não troca o tráfego
+        required: false
+        type: boolean
+        default: false
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: alvo
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+            echo "health=ok" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+            if [ "${{ inputs.simular_falha }}" = "true" ]; then
+              echo "health=fail" >> "$GITHUB_OUTPUT"
+            else
+              echo "health=ok" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+          echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+      - name: Publicar no VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          PILOTO_OWNER: ${{ steps.alvo.outputs.owner }}
+        run: bash scripts/ci-remote.sh "${{ steps.alvo.outputs.tag }}" "${{ steps.alvo.outputs.health }}"

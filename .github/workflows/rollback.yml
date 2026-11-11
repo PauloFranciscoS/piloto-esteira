@@ -1,0 +1,29 @@
+name: rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: previous volta para a release que ficou no ar antes da atual
+        required: true
+        default: previous
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  reverter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: owner
+        run: echo "name=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+      - name: Reverter no VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          PILOTO_OWNER: ${{ steps.owner.outputs.name }}
+        run: bash scripts/ci-remote.sh "${{ inputs.tag }}" ok

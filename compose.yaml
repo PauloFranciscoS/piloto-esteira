@@ -1,0 +1,27 @@
+services:
+  web:
+    image: ${WEB_IMAGE}
+    networks: [piloto]
+    environment:
+      SERVICE: web
+      APP_VERSION: ${APP_VERSION}
+      GIT_SHA: ${GIT_SHA}
+      HEALTH_MODE: ${HEALTH_MODE:-ok}
+      PORT: "8080"
+    restart: unless-stopped
+
+  api:
+    image: ${API_IMAGE}
+    networks: [piloto]
+    environment:
+      SERVICE: api
+      APP_VERSION: ${APP_VERSION}
+      GIT_SHA: ${GIT_SHA}
+      HEALTH_MODE: ${HEALTH_MODE:-ok}
+      PORT: "8080"
+    restart: unless-stopped
+
+networks:
+  piloto:
+    external: true
+    name: piloto
