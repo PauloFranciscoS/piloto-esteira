@@ -50,10 +50,3 @@ jobs:
           tags: |
             ghcr.io/${{ steps.owner.outputs.name }}/piloto-esteira-api:${{ github.sha }}
             ghcr.io/${{ steps.owner.outputs.name }}/piloto-esteira-api:latest
-      - name: Pacotes públicos
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          for name in piloto-esteira-web piloto-esteira-api; do
-            gh api --method PATCH "/user/packages/container/${name}" -f visibility=public
-          done
