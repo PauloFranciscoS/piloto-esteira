@@ -64,19 +64,12 @@ export GIT_SHA="${TAG}"
 
 docker compose -p "${PROJECT}" -f "${ROOT}/compose.yaml" pull
 docker compose -p "${PROJECT}" -f "${ROOT}/compose.yaml" up -d --force-recreate
-docker pull curlimages/curl:8.11.1 >/dev/null
 
-healthy=0
-for _ in $(seq 1 30); do
-  if docker run --rm --network piloto curlimages/curl:8.11.1 -fsS "http://${PROJECT}-web-1:8080/health" >/dev/null \
-    && docker run --rm --network piloto curlimages/curl:8.11.1 -fsS "http://${PROJECT}-api-1:8080/health" >/dev/null; then
-    healthy=1
-    break
-  fi
-  sleep 1
-done
-
-if [[ "${healthy}" -ne 1 ]]; then
+if ! docker run --rm --network piloto \
+  -e WEB_URL="http://${PROJECT}-web-1:8080/health" \
+  -e API_URL="http://${PROJECT}-api-1:8080/health" \
+  curlimages/curl:8.11.1 \
+  sh -c 'i=0; while [ "$i" -lt 30 ]; do if curl -fsS "$WEB_URL" >/dev/null && curl -fsS "$API_URL" >/dev/null; then exit 0; fi; i=$((i+1)); sleep 1; done; exit 1'; then
   echo "Healthcheck falhou em ${TAG}. O NGINX continua em ${CURRENT_TAG:-nenhum}."
   docker compose -p "${PROJECT}" -f "${ROOT}/compose.yaml" down
   exit 1
